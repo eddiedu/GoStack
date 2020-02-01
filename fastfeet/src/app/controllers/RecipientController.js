@@ -1,33 +1,27 @@
 // este import é diferente porque o yup não tem export
-import * as Yup from 'yup';
+import schemas from '../schemas/recipients';
 import Recipient from '../models/Recipient';
 
 class RecipientController {
+  async index(req, res) {
+    const list = await Recipient.findAll();
+    return res.json(list);
+  }
+
   async store(req, res) {
-    const schema = Yup.object().shape({
-      name: Yup.string().required(),
-      street: Yup.string().required(),
-      additionalAddress: Yup.string(),
-      city: Yup.string().required(),
-      zipCode: Yup.string()
-        .required()
-        .matches('^d{5}-d{3}$', 'ZIP CODE invalid. It should be 00000-000'),
-      number: Yup.number()
-        .required()
-        .positive()
-        .integer(),
-    });
+    const schema = schemas.storeSchema;
 
-    // old version
-    // if (!(await schema.isValid(req.body))) {
-    //   return res.status(400).json({ error: 'Validation fails' });
-    // }
+    try {
+      await schema.validate(req.body, { abortEarly: false });
+    } catch (error) {
+      return res.status(400).json(error.errors);
+    }
 
-    const RecipientExists = await Recipient.findOne({
+    const recipientExists = await Recipient.findOne({
       where: { name: req.body.name },
     });
 
-    if (RecipientExists) {
+    if (recipientExists) {
       return res.status(400).json({ error: 'Recipient already exists' });
     }
 
@@ -52,44 +46,50 @@ class RecipientController {
   }
 
   async update(req, res) {
-    const schema = Yup.object().shape({
-      name: Yup.string(),
-      email: Yup.string().email(),
-      oldPassword: Yup.string().min(6),
-      password: Yup.string()
-        .min(6)
-        .when('oldPassword', (oldPassword, field) =>
-          oldPassword ? field.required() : field
-        ),
-      confirmPassword: Yup.string().when('password', (password, field) =>
-        password ? field.required().oneOf([Yup.ref('password')]) : field
-      ),
-    });
+    const schema = schemas.storeSchema;
 
-    if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'Validation fails' });
+    try {
+      await schema.validate(req.body, { abortEarly: false });
+    } catch (error) {
+      return res.status(400).json(error.errors);
     }
 
-    const { email, oldPassword } = req.body;
+    const recipientExists = await Recipient.findByPk(req.params.id);
 
-    const Recipient = await Recipient.findByPk(req.RecipientId);
-    console.log(req.RecipientId);
-    // Se trocou o email verificar se o novo email já não está cadastrado
-    if (email && email !== Recipient.email) {
-      const RecipientExists = await Recipient.findOne({
-        where: { email: req.body.email },
-      });
-      if (RecipientExists) {
-        return res.status(400).json({ error: 'Recipient already exists' });
+    if (!recipientExists) {
+      return res.status(400).json({ error: "Recipient doesn't exists" });
+    }
+
+    const { name, street, additionalAddress, city, zipCode } = req.body;
+
+    await Recipient.update(
+      {
+        name,
+        street,
+        additional_address: additionalAddress,
+        city,
+        zip_code: zipCode,
+      },
+      {
+        where: { id: req.params.id },
       }
-    }
+    );
+    return res.json({ message: 'Recipient updated' });
+  }
 
-    // oldPassword é valida
-    if (oldPassword && !(await Recipient.checkPassword(oldPassword))) {
-      return res.status(401).json({ error: 'Password does not match' });
-    }
+  async delete(req, res) {
+    const recipientExists = await Recipient.findByPk(req.params.id);
 
-    return res.json({ ok: true });
+    if (!recipientExists) {
+      return res.status(400).json({ error: "Recipient doesn't exists" });
+    }
+    try {
+      recipientExists.destroy();
+      return res.json({ message: 'Recipient deleted' });
+    } catch (error) {
+      console.log(error);
+      return res.status(400).json({ error: 'Error to delete' });
+    }
   }
 }
 export default new RecipientController();

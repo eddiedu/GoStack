@@ -18,12 +18,12 @@ class Recipient extends Model {
       }
     );
 
-    this.addHook('beforeSave', async user => {
-      if (user.additionalAddress) {
-        user.additional_address = user.additionalAddress;
+    this.addHook('beforeSave', async recipient => {
+      if (recipient.additionalAddress) {
+        recipient.additional_address = recipient.additionalAddress;
       }
-      if (user.zipCode) {
-        user.zip_code = user.zipCode;
+      if (recipient.zipCode) {
+        recipient.zip_code = recipient.zipCode;
       }
     });
 
