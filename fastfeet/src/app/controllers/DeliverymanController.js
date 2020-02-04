@@ -1,12 +1,15 @@
 // este import é diferente porque o yup não tem export
-import * as Yup from 'yup';
-import Deliveryman from '../models/Deliveryman';
+import User from '../models/User';
 import File from '../models/File';
-import schemas from '../schemas/deliveryman';
+import Delivery from '../models/Delivery';
+import DeliveryProblem from '../models/DeliveryProblem';
+import schemasDeliveryman from '../schemas/deliveryman';
 
 class DeliverymanController {
   async index(req, res) {
-    const list = await Deliveryman.findAll({
+    const deliverymen = await User.findAll({
+      where: { deliveryman: true },
+      attributes: ['id', 'name', 'email', 'avatar_id'],
       include: [
         {
           model: File,
@@ -15,78 +18,39 @@ class DeliverymanController {
         },
       ],
     });
-    return res.json(list);
+
+    return res.json(deliverymen);
   }
 
   async store(req, res) {
-    const schema = schemas.storeSchema;
+    const schema = schemasDeliveryman.storeSchema;
 
-    if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'Validation fails' });
-    }
-
-    const deliverymanExists = await Deliveryman.findOne({
-      where: { email: req.body.email },
-    });
-
-    if (deliverymanExists) {
-      return res.status(400).json({ error: 'Deliveryman already exists' });
-    }
-
-    const { id, name, email, avatar_id } = await Deliveryman.create(req.body);
-
-    // formatando para responder somente com os campos que fazer sentido para a interface
-    return res.json({
-      id,
-      name,
-      email,
-      avatar_id,
-    });
-  }
-
-  async update(req, res) {
-    const schema = schemas.updateSchema;
-
-    if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'Validation fails' });
-    }
-
-    const { email } = req.body;
-
-    const deliveryman = await Deliveryman.findByPk(req.params.id);
-    console.log(`Deliveryman id ${req.params.id}`);
-    // Se trocou o email verificar se o novo email já não está cadastrado
-    if (email && email !== deliveryman.email) {
-      const deliverymanExists = await Deliveryman.findOne({
-        where: { email: req.body.email },
-      });
-      if (deliverymanExists) {
-        return res.status(400).json({ error: 'Deliveryman already exists' });
-      }
-    }
-
-    const { id, name } = await deliveryman.update(req.body);
-
-    return res.json({
-      id,
-      name,
-      email,
-    });
-  }
-
-  async delete(req, res) {
-    const deliverymanExists = await Deliveryman.findByPk(req.params.id);
-
-    if (!deliverymanExists) {
-      return res.status(400).json({ error: "Deliveryman doesn't exists" });
-    }
     try {
-      deliverymanExists.destroy();
-      return res.json({ message: 'Deliveryman deleted' });
+      await schema.validate(req.body, { abortEarly: false });
     } catch (error) {
-      console.log(error);
-      return res.status(400).json({ error: 'Error to delete' });
+      return res.status(400).json(error.errors);
+    }
+
+    const delivery = await Delivery.findByPk(req.params.id);
+    if (!delivery) {
+      return res.status(400).json({ error: 'Delivery not found' });
+    }
+
+    try {
+      const { id, description, delivery_id } = await DeliveryProblem.create({
+        delivery_id: req.params.id,
+        ...req.body,
+      });
+
+      return res.json({
+        id,
+        description,
+        delivery_id,
+      });
+    } catch (error) {
+      return res.status(500).json(error);
     }
   }
 }
+
 export default new DeliverymanController();

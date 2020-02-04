@@ -55,7 +55,7 @@ class UserController {
 
     const { email, oldPassword } = req.body;
 
-    const user = await User.findByPk(req.userId);
+    const user = await User.findByPk(req.params.id);
     console.log(req.userId);
     // Se trocou o email verificar se o novo email já não está cadastrado
     if (email && email !== user.email) {
@@ -72,7 +72,13 @@ class UserController {
       return res.status(401).json({ error: 'Password does not match' });
     }
 
-    return res.json({ ok: true });
+    const { id, name } = await user.update(req.body);
+
+    return res.json({
+      id,
+      name,
+      email,
+    });
   }
 }
 export default new UserController();

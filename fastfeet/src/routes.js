@@ -6,25 +6,44 @@ import DeliverymanController from './app/controllers/DeliverymanController';
 import SessionController from './app/controllers/SessionController';
 import FileController from './app/controllers/FileController';
 import DeliveryController from './app/controllers/DeliveryController';
+import DeliveryProblemController from './app/controllers/DeliveryProblemController';
+import DeliverymanDeliveriesController from './app/controllers/DeliverymanDeliveriesController';
+import DistributorController from './app/controllers/DistributorController';
 
 import multerConfig from './config/multer';
 
 import authMiddleware from './app/middlewares/auth';
+import administratorMiddleware from './app/middlewares/administrator';
+import deliverymanMiddleware from './app/middlewares/deliveryman';
 
 const routes = new Router();
 const upload = multer(multerConfig);
 
-routes.post('/users', UserController.store);
 routes.post('/sessions', SessionController.store);
 
 routes.use(authMiddleware); // somente as rotas abaixo vão exigir autenticação
 
-routes.put('/users', UserController.update);
+routes.post('/users', administratorMiddleware, UserController.store);
+routes.put('/users/:id', UserController.update);
 
 routes.get('/deliverymen', DeliverymanController.index);
-routes.post('/deliverymen', DeliverymanController.store);
-routes.put('/deliverymen/:id', DeliverymanController.update);
-routes.delete('/deliverymen/:id', DeliverymanController.delete);
+routes.get(
+  '/deliverymen/:id/deliveries',
+  deliverymanMiddleware,
+  DeliverymanDeliveriesController.index
+);
+routes.get('/delivery/:id/problems', DeliveryProblemController.index);
+routes.post(
+  '/delivery/:id/cancel-delivery',
+  administratorMiddleware,
+  DistributorController.store
+);
+
+routes.post(
+  '/delivery/:id/problems',
+  deliverymanMiddleware,
+  DeliverymanController.store
+);
 
 routes.get('/deliver', DeliveryController.index);
 routes.post('/deliver', DeliveryController.store);

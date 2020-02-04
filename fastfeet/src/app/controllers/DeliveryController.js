@@ -2,9 +2,8 @@
 import * as Yup from 'yup';
 import {
   parseISO,
-  startOfHour,
-  addHours,
-  format,
+  startOfDay,
+  endOfDay,
   setHours,
   setMinutes,
   setSeconds,
@@ -12,8 +11,9 @@ import {
   isAfter,
 } from 'date-fns';
 import pt from 'date-fns/locale/pt';
+import { Op } from 'sequelize';
 import Delivery from '../models/Delivery';
-import Deliveryman from '../models/Deliveryman';
+import User from '../models/User';
 import Recipient from '../models/Recipient';
 import File from '../models/File';
 import Queue from '../../lib/Queue';
@@ -29,7 +29,7 @@ class DeliveryController {
           attributes: ['name', 'path', 'url'],
         },
         {
-          model: Deliveryman,
+          model: User,
           as: 'deliveryman',
           attributes: ['id', 'name', 'email'],
           include: [
@@ -75,11 +75,12 @@ class DeliveryController {
     if (!recipientExists) {
       return res.status(400).json({ error: "Recipient doesn't exists" });
     }
-    const deliverymanExists = await Deliveryman.findByPk(
-      req.body.deliveryman_id
-    );
+    const deliverymanExists = await User.findByPk(req.body.deliveryman_id);
     if (!deliverymanExists) {
       return res.status(400).json({ error: "Deliveryman doesn't exists" });
+    }
+    if (!deliverymanExists.deliveryman) {
+      return res.status(400).json({ error: 'The user is not a deliveryman' });
     }
 
     if (req.params.signature_id && req.params.signature_id > 0) {
@@ -106,7 +107,7 @@ class DeliveryController {
           attributes: ['name', 'path', 'url'],
         },
         {
-          model: Deliveryman,
+          model: User,
           as: 'deliveryman',
           attributes: ['id', 'name', 'email'],
           include: [
@@ -153,6 +154,9 @@ class DeliveryController {
     }
 
     const deliver = await Delivery.findByPk(req.params.id);
+    if (!deliver) {
+      return res.status(400).json({ error: 'Deliver does not exist' });
+    }
 
     if (req.body.start_date) {
       // Verificar se está dentro do range definido
@@ -169,6 +173,25 @@ class DeliveryController {
         return res
           .status(400)
           .json({ error: 'Start date should be before 18:00' });
+      }
+
+      //* * verificar se o entregador já tem 5 entregas na data */
+      const totalDeliveries = await Delivery.count({
+        where: {
+          deliveryman_id: deliver.deliveryman_id,
+          canceled_at: null,
+          end_date: null,
+          start_date: {
+            [Op.between]: [startOfDay(startDate), endOfDay(startDate)],
+          },
+        },
+      });
+
+      console.log(`Total de entregas neste dia ${totalDeliveries}`);
+      if (totalDeliveries >= 5) {
+        return res.status(400).json({
+          error: 'You can get more than 5 deliveries on the same day',
+        });
       }
     }
 

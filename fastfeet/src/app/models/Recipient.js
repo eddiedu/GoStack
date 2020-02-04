@@ -9,17 +9,17 @@ class Recipient extends Model {
         number: Sequelize.INTEGER,
         additionalAddress: {
           type: Sequelize.VIRTUAL,
-          get() {
-            return this.additional_address;
-          },
+          // get() {
+          //   return this.additional_address;
+          // },
         },
         additional_address: Sequelize.STRING(50),
         city: Sequelize.STRING,
         zipCode: {
           type: Sequelize.VIRTUAL,
-          get() {
-            return this.zip_code;
-          },
+          // get() {
+          //   return this.zip_code;
+          // },
         },
         zip_code: Sequelize.STRING(9),
       },
