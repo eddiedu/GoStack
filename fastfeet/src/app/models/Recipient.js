@@ -7,17 +7,31 @@ class Recipient extends Model {
         name: Sequelize.STRING(100),
         street: Sequelize.STRING,
         number: Sequelize.INTEGER,
-        additionalAddress: Sequelize.VIRTUAL,
+        additionalAddress: {
+          type: Sequelize.VIRTUAL,
+          // get() {
+          //   return this.additional_address;
+          // },
+        },
         additional_address: Sequelize.STRING(50),
         city: Sequelize.STRING,
-        zipCode: Sequelize.VIRTUAL,
+        zipCode: {
+          type: Sequelize.VIRTUAL,
+          // get() {
+          //   return this.zip_code;
+          // },
+        },
         zip_code: Sequelize.STRING(9),
       },
       {
         sequelize,
       }
     );
-
+    /**
+     * Coloquei este método somente no Recipient para testar
+     * a mensagem sem o _ e usando camel case padronizando
+     * as mensagens
+     */
     this.addHook('beforeSave', async recipient => {
       if (recipient.additionalAddress) {
         recipient.additional_address = recipient.additionalAddress;

@@ -25,24 +25,28 @@ class RecipientController {
       return res.status(400).json({ error: 'Recipient already exists' });
     }
 
-    const {
-      id,
-      name,
-      street,
-      additional_address,
-      city,
-      zip_code,
-    } = await Recipient.create(req.body);
+    try {
+      const {
+        id,
+        name,
+        street,
+        additionalAddress,
+        city,
+        zipCode,
+      } = await Recipient.create(req.body);
 
-    // formatando para responder somente com os campos que fazer sentido para a interface
-    return res.json({
-      id,
-      name,
-      street,
-      additionalAddress: additional_address,
-      city,
-      zipCode: zip_code,
-    });
+      // formatando para responder somente com os campos que fazer sentido para a interface
+      return res.json({
+        id,
+        name,
+        street,
+        additionalAddress,
+        city,
+        zipCode,
+      });
+    } catch (error) {
+      return res.status(500).json({ error });
+    }
   }
 
   async update(req, res) {
