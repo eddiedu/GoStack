@@ -1,6 +1,7 @@
 import { startOfDay, parseISO, endOfDay } from 'date-fns';
 import { Op } from 'sequelize';
 import User from '../models/User';
+import File from '../models/File';
 import Appointment from '../models/Appointment';
 
 class ScheduleController {
@@ -31,6 +32,13 @@ class ScheduleController {
           [Op.between]: [startOfDay(parsedDate), endOfDay(parsedDate)],
         },
       },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['name'],
+        },
+      ],
       order: ['date'],
       // attributes: ['id', 'date'],
       // limit: itemsPerPage,
